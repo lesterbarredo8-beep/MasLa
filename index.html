@@ -238,6 +238,33 @@
           <h2 class="section-title">Settings</h2>
         </div>
 
+        <!-- API Key -->
+        <div class="settings-card" id="api-key-card">
+          <div class="settings-card-header">
+            <div class="settings-icon-wrap orange">
+              <i data-lucide="key-round"></i>
+            </div>
+            <div>
+              <h3 class="settings-card-title">Gemini API Key</h3>
+              <p class="settings-card-desc">Required to detect recipes</p>
+            </div>
+          </div>
+          <div class="api-key-input-wrap">
+            <input
+              type="password"
+              class="settings-input"
+              id="api-key-input"
+              placeholder="Paste your Gemini API key here"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="api-key-save-btn" id="api-key-save-btn">Save</button>
+          </div>
+          <p class="api-key-hint">
+            Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>. Stored locally on your device only.
+          </p>
+        </div>
+
         <!-- Language preference -->
         <div class="settings-card">
           <div class="settings-card-header">

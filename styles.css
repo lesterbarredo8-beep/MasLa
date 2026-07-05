@@ -1494,3 +1494,77 @@ body::after {
     box-shadow: 0 0 80px rgba(0,0,0,0.8);
   }
 }
+
+/* ── API KEY INPUT ── */
+.api-key-input-wrap {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.settings-input {
+  flex: 1;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 0.65rem 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+
+.settings-input::placeholder {
+  color: var(--text-muted);
+}
+
+.settings-input:focus {
+  border-color: var(--amber-400);
+}
+
+.api-key-save-btn {
+  background: var(--gradient-amber);
+  border: none;
+  border-radius: 12px;
+  color: #000;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.api-key-save-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.api-key-save-btn:active {
+  transform: scale(0.97);
+}
+
+.api-key-hint {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  margin-top: 0.6rem;
+  line-height: 1.5;
+}
+
+.api-key-hint a {
+  color: var(--text-amber);
+  text-decoration: none;
+}
+
+.api-key-hint a:hover {
+  text-decoration: underline;
+}
+
+.settings-icon-wrap.orange {
+  background: linear-gradient(135deg, rgba(249,115,22,0.2), rgba(251,146,60,0.2));
+  color: var(--orange-400);
+}
+
