@@ -6,7 +6,7 @@
 'use strict';
 
 // ── CONSTANTS ──────────────────────────────────────────────────
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 const HISTORY_KEY    = 'masla_history';
 const LANGUAGE_KEY   = 'masla_language';
 const DETAIL_KEY     = 'masla_detail';
