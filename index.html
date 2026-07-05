@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="MasLa Recipe Finder — Point your camera at any food and get an instant AI-powered recipe with ingredients and step-by-step instructions." />
+  <title>MasLa — AI Recipe Finder</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Icons (Lucide via CDN) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════ SPLASH SCREEN -->
+  <div id="splash-screen" class="splash">
+    <div class="splash-content">
+      <div class="splash-logo">
+        <div class="splash-icon-ring">
+          <i data-lucide="utensils" class="splash-icon"></i>
+        </div>
+      </div>
+      <h1 class="splash-title">MasLa</h1>
+      <p class="splash-tagline">AI-Powered Recipe Finder</p>
+      <div class="splash-loader">
+        <div class="splash-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ MAIN APP WRAPPER -->
+  <div id="app" class="app hidden">
+
+    <!-- ── HEADER ── -->
+    <header class="app-header" id="app-header">
+      <div class="header-left">
+        <div class="header-logo">
+          <i data-lucide="utensils" class="header-logo-icon"></i>
+        </div>
+        <div>
+          <h1 class="header-title">MasLa</h1>
+          <p class="header-subtitle">AI Recipe Finder</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="settings-btn" aria-label="Settings">
+        <i data-lucide="settings-2"></i>
+      </button>
+    </header>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main class="app-main">
+
+      <!-- ═══ PAGE: HOME ═══ -->
+      <section id="page-home" class="page active">
+
+        <!-- Hero Capture Area -->
+        <div class="capture-card" id="capture-card">
+          <div class="capture-preview" id="capture-preview">
+            <!-- Camera stream or image preview -->
+            <video id="camera-video" autoplay playsinline muted class="hidden"></video>
+            <canvas id="camera-canvas" class="hidden"></canvas>
+            <img id="preview-image" class="hidden" alt="Food preview" />
+
+            <!-- Default State (no image) -->
+            <div class="capture-placeholder" id="capture-placeholder">
+              <div class="capture-rings">
+                <div class="ring ring-1"></div>
+                <div class="ring ring-2"></div>
+                <div class="ring ring-3"></div>
+              </div>
+              <div class="capture-placeholder-icon">
+                <i data-lucide="scan-line"></i>
+              </div>
+              <p class="capture-placeholder-text">Capture or upload a food photo</p>
+              <p class="capture-placeholder-hint">AI will detect the recipe instantly</p>
+            </div>
+
+            <!-- Camera Overlay (when camera is active) -->
+            <div class="camera-overlay hidden" id="camera-overlay">
+              <div class="camera-frame">
+                <span class="corner tl"></span>
+                <span class="corner tr"></span>
+                <span class="corner bl"></span>
+                <span class="corner br"></span>
+              </div>
+              <p class="camera-tip">Point at food &amp; tap capture</p>
+            </div>
+
+            <!-- Image Preview Overlay -->
+            <div class="preview-overlay hidden" id="preview-overlay">
+              <button class="overlay-action-btn" id="clear-image-btn">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="capture-actions">
+            <button class="capture-btn capture-btn--camera" id="camera-btn">
+              <i data-lucide="camera"></i>
+              <span>Camera</span>
+            </button>
+            <button class="capture-btn capture-btn--shutter hidden" id="shutter-btn">
+              <i data-lucide="circle"></i>
+            </button>
+            <button class="capture-btn capture-btn--gallery" id="gallery-btn">
+              <i data-lucide="image"></i>
+              <span>Gallery</span>
+            </button>
+          </div>
+
+          <!-- Hidden file inputs -->
+          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" aria-label="Take photo" />
+          <input type="file" id="gallery-input" accept="image/*" class="hidden" aria-label="Upload from gallery" />
+        </div>
+
+        <!-- Detect Button -->
+        <button class="detect-btn" id="detect-btn" disabled>
+          <div class="detect-btn-inner">
+            <i data-lucide="sparkles"></i>
+            <span>Detect Recipe</span>
+          </div>
+          <div class="detect-btn-glow"></div>
+        </button>
+
+        <!-- Loading State -->
+        <div class="loading-card hidden" id="loading-card">
+          <div class="loading-animation">
+            <div class="food-spinner">
+              <div class="spinner-segment"></div>
+              <div class="spinner-segment"></div>
+              <div class="spinner-segment"></div>
+              <div class="spinner-segment"></div>
+            </div>
+          </div>
+          <p class="loading-title">Analyzing your food…</p>
+          <p class="loading-sub" id="loading-message">Identifying ingredients</p>
+        </div>
+
+        <!-- ── RESULT CARD ── -->
+        <div class="result-card hidden" id="result-card">
+          <div class="result-header">
+            <div class="result-badge" id="result-badge">
+              <i data-lucide="chef-hat"></i>
+              <span id="result-cuisine"></span>
+            </div>
+            <button class="icon-btn result-save-btn" id="result-save-btn" aria-label="Save recipe">
+              <i data-lucide="bookmark"></i>
+            </button>
+          </div>
+
+          <h2 class="result-title" id="result-title"></h2>
+
+          <!-- Quick Stats -->
+          <div class="result-stats">
+            <div class="stat-chip">
+              <i data-lucide="clock"></i>
+              <span id="stat-time"></span>
+            </div>
+            <div class="stat-chip">
+              <i data-lucide="flame"></i>
+              <span id="stat-calories"></span>
+            </div>
+            <div class="stat-chip">
+              <i data-lucide="bar-chart-2"></i>
+              <span id="stat-difficulty"></span>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="result-tabs" role="tablist">
+            <button class="result-tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+            <button class="result-tab" data-tab="ingredients" role="tab" aria-selected="false">Ingredients</button>
+            <button class="result-tab" data-tab="steps" role="tab" aria-selected="false">Steps</button>
+          </div>
+
+          <!-- Tab Panels -->
+          <div class="tab-panel active" id="panel-overview">
+            <p class="result-description" id="result-description"></p>
+            <div class="tips-box" id="tips-box">
+              <h4 class="tips-title"><i data-lucide="lightbulb"></i> Chef's Tips</h4>
+              <p id="result-tips"></p>
+            </div>
+          </div>
+
+          <div class="tab-panel hidden" id="panel-ingredients">
+            <ul class="ingredients-list" id="ingredients-list"></ul>
+          </div>
+
+          <div class="tab-panel hidden" id="panel-steps">
+            <ol class="steps-list" id="steps-list"></ol>
+          </div>
+
+          <!-- Action row -->
+          <div class="result-actions">
+            <button class="action-pill action-pill--outline" id="share-btn">
+              <i data-lucide="share-2"></i> Share
+            </button>
+            <button class="action-pill action-pill--primary" id="try-another-btn">
+              <i data-lucide="camera"></i> Try Another
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ═══ PAGE: HISTORY ═══ -->
+      <section id="page-history" class="page hidden">
+        <div class="section-header">
+          <h2 class="section-title">Recent Detections</h2>
+          <button class="text-btn" id="clear-history-btn">Clear all</button>
+        </div>
+        <div class="history-list" id="history-list">
+          <div class="empty-state" id="history-empty">
+            <i data-lucide="history"></i>
+            <p>No recipes detected yet</p>
+            <span>Your recipe history will appear here</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ PAGE: SETTINGS ═══ -->
+      <section id="page-settings" class="page hidden">
+        <div class="section-header">
+          <h2 class="section-title">Settings</h2>
+        </div>
+
+        <!-- Language preference -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <div class="settings-icon-wrap purple">
+              <i data-lucide="globe"></i>
+            </div>
+            <div>
+              <h3 class="settings-card-title">Response Language</h3>
+              <p class="settings-card-desc">Language for recipe output</p>
+            </div>
+          </div>
+          <select class="settings-select" id="language-select">
+            <option value="English">🇬🇧 English</option>
+            <option value="Filipino">🇵🇭 Filipino / Tagalog</option>
+            <option value="Spanish">🇪🇸 Spanish</option>
+            <option value="French">🇫🇷 French</option>
+            <option value="Japanese">🇯🇵 Japanese</option>
+            <option value="Chinese">🇨🇳 Chinese</option>
+            <option value="Indonesian">🇮🇩 Indonesian / Bahasa</option>
+          </select>
+        </div>
+
+        <!-- Detail Level -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <div class="settings-icon-wrap green">
+              <i data-lucide="sliders-horizontal"></i>
+            </div>
+            <div>
+              <h3 class="settings-card-title">Recipe Detail Level</h3>
+              <p class="settings-card-desc">How detailed should the recipe be</p>
+            </div>
+          </div>
+          <div class="detail-options">
+            <button class="detail-option active" data-detail="simple" id="detail-simple">
+              <i data-lucide="zap"></i> Quick
+            </button>
+            <button class="detail-option" data-detail="standard" id="detail-standard">
+              <i data-lucide="book-open"></i> Standard
+            </button>
+            <button class="detail-option" data-detail="detailed" id="detail-detailed">
+              <i data-lucide="book-marked"></i> Detailed
+            </button>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="settings-card about-card">
+          <div class="about-logo">
+            <i data-lucide="utensils"></i>
+          </div>
+          <h3 class="about-title">MasLa Recipe Finder</h3>
+          <p class="about-version">Version 1.0.0</p>
+          <p class="about-desc">Powered by AI vision. Point your camera at any dish and get an instant recipe.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ── BOTTOM NAVIGATION ── -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-page="home" id="nav-home">
+        <i data-lucide="scan-line"></i>
+        <span>Detect</span>
+      </button>
+      <button class="nav-item" data-page="history" id="nav-history">
+        <i data-lucide="history"></i>
+        <span>History</span>
+      </button>
+      <button class="nav-item" data-page="settings" id="nav-settings">
+        <i data-lucide="settings-2"></i>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ── TOAST NOTIFICATIONS ── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/detect-recipe.js": {
+      "maxDuration": 30
+    }
+  }
+}
