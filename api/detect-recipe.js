@@ -118,7 +118,7 @@ module.exports = async function handler(req, res) {
       }
 
       console.error('Gemini API error:', errMsg);
-      return res.status(502).json({ error: 'Could not analyze the photo. Please try again.' });
+      return res.status(502).json({ error: `Could not analyze the photo: ${errMsg}` });
     }
 
     const data = await response.json();
