@@ -6,11 +6,10 @@
 'use strict';
 
 // ── CONSTANTS ──────────────────────────────────────────────────
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const DETECT_API_ENDPOINT = '/api/detect-recipe';
 const HISTORY_KEY    = 'masla_history';
 const LANGUAGE_KEY   = 'masla_language';
 const DETAIL_KEY     = 'masla_detail';
-const API_KEY_STORAGE = 'masla_gemini_key';
 const MAX_HISTORY    = 5;
 
 // ── STATE ──────────────────────────────────────────────────────
@@ -23,7 +22,6 @@ let state = {
   currentResult: null,
   language: 'English',
   detailLevel: 'simple',
-  apiKey: '',
 };
 
 // ── DOM REFS ───────────────────────────────────────────────────
@@ -74,8 +72,7 @@ const dom = {
   // Settings
   languageSelect:   $('language-select'),
   settingsBtn:      $('settings-btn'),
-  apiKeyInput:      $('api-key-input'),
-  apiKeySaveBtn:    $('api-key-save-btn'),
+
   // Nav
   navHome:          $('nav-home'),
   navHistory:       $('nav-history'),
@@ -129,11 +126,6 @@ function loadSettings() {
     });
   }
 
-  const savedKey = localStorage.getItem(API_KEY_STORAGE);
-  if (savedKey) {
-    state.apiKey = savedKey;
-    dom.apiKeyInput.value = savedKey;
-  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -176,16 +168,7 @@ function setupEventListeners() {
     localStorage.setItem(LANGUAGE_KEY, state.language);
   });
 
-  dom.apiKeySaveBtn.addEventListener('click', () => {
-    const key = dom.apiKeyInput.value.trim();
-    if (!key) {
-      showToast('Please enter a valid API key', 'error');
-      return;
-    }
-    state.apiKey = key;
-    localStorage.setItem(API_KEY_STORAGE, key);
-    showToast('✅ API key saved!', 'success');
-  });
+
 
   document.querySelectorAll('.detail-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -367,52 +350,11 @@ function clearImage() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// GEMINI API — RECIPE DETECTION
+// RECIPE DETECTION (via server-side proxy)
 // ══════════════════════════════════════════════════════════════
-const DETAIL_INSTRUCTIONS = {
-  simple: 'Provide a concise recipe with essential ingredients and 4-6 main cooking steps.',
-  standard: 'Provide a well-detailed recipe with exact ingredient measurements and 6-8 clear cooking steps.',
-  detailed: 'Provide a very detailed professional recipe with precise measurements, preparation tips, plating suggestions, and 8-12 thorough cooking steps.',
-};
-
-function buildPrompt(language, detailLevel) {
-  const detailInstructions = DETAIL_INSTRUCTIONS[detailLevel] || DETAIL_INSTRUCTIONS.standard;
-  return `You are a world-class culinary AI. Analyze the food in this image and respond ONLY with a valid JSON object — no markdown, no code fences, no extra text.
-
-Language for the response: ${language}
-Detail level: ${detailInstructions}
-
-JSON schema (all fields required):
-{
-  "foodName": "Name of the dish",
-  "cuisine": "Cuisine type (e.g. Italian, Filipino, Thai)",
-  "description": "2-3 sentence appetizing description of the dish",
-  "prepTime": "e.g. 30 minutes",
-  "calories": "e.g. 450 kcal per serving",
-  "difficulty": "Easy | Medium | Hard",
-  "servings": "e.g. 4 servings",
-  "tips": "1-2 chef tips for best results",
-  "ingredients": [
-    { "name": "Ingredient name", "amount": "quantity + unit" }
-  ],
-  "steps": [
-    "Step description"
-  ]
-}
-
-If you cannot identify food in the image, respond with:
-{ "error": "No food detected in the image. Please try a clearer photo of a dish." }`;
-}
-
 async function detectRecipe() {
   if (!state.capturedImageBase64) {
     showToast('Please capture or upload a food photo first', 'error');
-    return;
-  }
-
-  if (!state.apiKey) {
-    showToast('Please add your Gemini API key in Settings first', 'error', 4000);
-    navigateTo('settings');
     return;
   }
 
@@ -436,47 +378,24 @@ async function detectRecipe() {
   }, 1200);
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${state.apiKey}`, {
+    const response = await fetch(DETECT_API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: buildPrompt(state.language, state.detailLevel) },
-            { inline_data: { mime_type: state.capturedImageMimeType, data: state.capturedImageBase64 } },
-          ],
-        }],
-        generationConfig: { temperature: 0.7, topP: 0.9, maxOutputTokens: 2048 },
+        imageBase64: state.capturedImageBase64,
+        mimeType: state.capturedImageMimeType,
+        language: state.language,
+        detailLevel: state.detailLevel,
       }),
     });
 
     clearInterval(msgInterval);
 
-    const data = await response.json().catch(() => ({}));
+    const recipe = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const errMsg = data?.error?.message || `API error: ${response.status}`;
-      if (response.status === 400 && errMsg.toLowerCase().includes('api key')) {
-        showToast('Invalid API key. Please check your key in Settings.', 'error', 5000);
-        navigateTo('settings');
-      } else if (response.status === 429) {
-        showToast('Too many requests. Please wait a moment and try again.', 'error', 4000);
-      } else {
-        showToast(errMsg, 'error', 4000);
-      }
-      dom.loadingCard.classList.add('hidden');
-      dom.detectBtn.disabled = false;
-      dom.detectBtn.querySelector('span').textContent = 'Detect Recipe';
-      return;
+      throw new Error(recipe.error || `Request failed: ${response.status}`);
     }
-
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) {
-      throw new Error('Empty response from AI. Please try again.');
-    }
-
-    const cleaned = rawText.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
-    const recipe = JSON.parse(cleaned);
 
     if (recipe.error) {
       showToast(recipe.error, 'error', 4000);
